@@ -2,7 +2,7 @@
 sidebar_label: Docker
 ---
 
-# Star Trek: Elite Force Docker Container
+# Star Trek: Elite Force Dedicated Server
 
 This repository provides a Dockerized **Star Trek: Elite Force dedicated server via cMod** suitable for running multiplayer Star Trek: Elite Force servers in a clean, reproducible way.  
 The image is designed for **headless operation**, supports bind-mounted mods and configuration, and handles legacy runtime dependencies required by Star Trek: Elite Force.
@@ -11,7 +11,7 @@ The image is designed for **headless operation**, supports bind-mounted mods and
 
 ## Features
 
-- Runs the **Star Trek: Elite Force dedicated server** (`iowolfded.x86_64`)
+- Runs the **Star Trek: Elite Force dedicated server** (`cMod-dedicated`)
 - Optionally downloads and extracts mod archives from URLs at startup
 - Automated build & push via GitHub Actions
 
@@ -51,9 +51,9 @@ services:
 .
 └── config/
     ├── Server/            # Base cMod install
-    │   └── main/          # Star Trek: Elite Force game files base directory
+    │   └── baseEF/        # Star Trek: Elite Force game files base directory
     ├── Overlay/           # Files to overlay on game directory (optional)
-    │   └── main/          # Star Trek: Elite Force overlay directory
+    │   └── baseEF/        # Star Trek: Elite Force overlay directory
     │       ├── maps/      # Custom maps
     │       └── ...        # Any other files you want to overlay
     ├── Merged/            # Overlayfs merged view (auto-created)
@@ -66,7 +66,7 @@ Both directories **must be writable** by Docker.
 ---
 
 ## Game Files
-You will need to copy the `mp_pak*.pk3` files from your retail copy of Star Trek: Elite Force into the `/config/Server/main` directory. The server will not run without these files.
+You will need to copy the `pak*.pk3` files from your retail copy of Star Trek: Elite Force into the `/config/Server/baseEF` directory. The server will not run without these files.
 
 ---
 
@@ -75,44 +75,36 @@ An `autoexec.cfg` file can also be created for adjusting server settings.
 Example:
 ```
 ////////////////////////////////////////////////////////////
-// Star Trek: Elite Force - cMod Dedicated Server
-// autoexec.cfg
+// Star Trek: Voyager - Elite Force (Holomatch)
+// cMod (ioEF-cMod) Dedicated Server - autoexec.cfg
+// Location: baseEF/autoexec.cfg
 ////////////////////////////////////////////////////////////
 
 ///////////////////////
-// Server Identity
+// Core server identity
 ///////////////////////
-set sv_hostname "^2eliteforce ^7Dedicated Server"
-set sv_maxclients "20"
+set sv_hostname "^2Elite Force^7 cMod Dedicated"
+set g_motd "^7Welcome! ^2Play nice ^7and have fun."
+set g_gametype "3"            // 1=FFA, 3=Team DM, 4=CTF (common EF values)
+
+set sv_maxclients "16"
 set sv_privateClients "0"
 set sv_privatePassword ""
 
 ///////////////////////
-// Network / Master
+// Internet / LAN mode
 ///////////////////////
-set sv_maxRate "25000"
-set sv_fps "20"
-set sv_timeout "200"
-set sv_zombietime "2"
-set sv_allowDownload "0"
-
-set dedicated "2"          // 2 = Internet, 1 = LAN
-set sv_master1 "master.idsoftware.com"
-set sv_master2 "master0.gamespy.com"
-set sv_master3 ""
-set sv_master4 ""
-set sv_master5 ""
+set dedicated "2"             // 2=Internet, 1=LAN
 
 ///////////////////////
-// RCON
+// Admin / RCON
 ///////////////////////
-set rconPassword "CHANGE_ME_STRONG_PASSWORD"
+set rconPassword "CHANGE_ME_STRONG_PASSWORD"  // never leave blank
 
 ///////////////////////
-// Game Settings
+// Rules / match pacing
 ///////////////////////
-set g_gametype "2"          // 0=SP, 2=Objective, 3=Stopwatch
-set timelimit "30"
+set timelimit "20"
 set fraglimit "0"
 set capturelimit "0"
 
@@ -120,21 +112,30 @@ set g_friendlyFire "1"
 set g_teamForceBalance "1"
 set g_teamAutoJoin "0"
 
-set g_voiceChatsAllowed "1"
-set g_noTeamSwitching "0"
-set g_antiLag "1"
-
-///////////////////////
-// Voting
-///////////////////////
 set g_allowVote "1"
-set voteFlags "0"
-set g_voteLimit "5"
+set g_doWarmup "1"
+set g_warmup "15"
 
 ///////////////////////
-// PunkBuster (if used)
+// Networking / abuse control
 ///////////////////////
-set sv_punkbuster "0"
+set sv_maxRate "25000"         // cap client rate (bandwidth fairness)
+set sv_timeout "200"
+set sv_zombietime "2"
+set sv_floodProtect "1"
+
+///////////////////////
+// Purity / cheats
+///////////////////////
+set sv_pure "1"
+
+///////////////////////
+// Downloads (cMod supports HTTP downloads)
+///////////////////////
+set sv_allowDownload "1"
+set sv_wwwDownload "1"
+set sv_wwwBaseURL "https://example.com/ef"    // points to your pk3 mirror root
+set sv_wwwDlDisconnected "0"                  // 0 keeps player connected while downloading
 
 ///////////////////////
 // Logging
@@ -144,41 +145,23 @@ set g_logSync "1"
 set logfile "3"
 
 ///////////////////////
-// Anti-Flood / Abuse
+// Ports note (router/firewall)
+// Elite Force commonly uses UDP 26000, 27500, 27910, 27960
 ///////////////////////
-set sv_floodProtect "1"
-set sv_floodProtectSlow "4"
-set sv_floodProtectFast "4"
-set sv_floodProtectBurst "8"
 
 ///////////////////////
-// Download / Redirect
+// Map rotation (Team DM example)
 ///////////////////////
-set sv_wwwDownload "0"
-set sv_wwwBaseURL ""
-set sv_wwwDlDisconnected "0"
+set m1 "map hm_stasis ; set nextmap vstr m2"
+set m2 "map hm_fear ; set nextmap vstr m3"
+set m3 "map hm_helix ; set nextmap vstr m4"
+set m4 "map hm_hangar ; set nextmap vstr m1"
+set nextmap "vstr m1"
 
 ///////////////////////
-// Messaging
+// Start the first map
 ///////////////////////
-set g_motd "^7Welcome to ^2eliteforce^7! Respect other players."
-set sv_allowAnonymous "0"
-
-///////////////////////
-// Map Rotation
-///////////////////////
-set d1 "map mp_assault; set nextmap vstr d2"
-set d2 "map mp_base; set nextmap vstr d3"
-set d3 "map mp_castle; set nextmap vstr d4"
-set d4 "map mp_depot; set nextmap vstr d5"
-set d5 "map mp_village; set nextmap vstr d1"
-
-set nextmap "vstr d1"
-
-///////////////////////
-// Execute on Load
-///////////////////////
-map mp_assault
+vstr m1
 ```
 All gameplay rules, cvars, maps, and RCON settings should live here.
 
@@ -229,4 +212,4 @@ docker run --rm -it \
 
 ## License
 cMod is distributed under its own license.
-This image contains only Docker build logic and helper scripts licensed under MIT.
+This repository contains only Docker build logic and helper scripts licensed under MIT.
