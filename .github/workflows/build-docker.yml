@@ -1,4 +1,4 @@
-name: Build & Push Star Trek: Elite Force Server (Docker Hub)
+name: "Build & Push Star Trek: Elite Force Server (Docker Hub)"
 
 on:
   workflow_dispatch:
